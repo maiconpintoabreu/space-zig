@@ -54,12 +54,11 @@ jobs:
       - name: Verify
         run: |
           emcc -v
-          whereis emcc
+          echo &EMSDK_PATH
           
       - name: Build Web Project
         run: |
-          zig build -Dtarget=wasm32-emscripten --sysroot ./esmdk/upstream/emscripten
-      
+          zig build -Dtarget=wasm32-emscripten --sysroot D:/a/space-zig/space-zig/emsdk-cache/emsdk-main
       - name: Generate Artifacts
         run: |
           # ls ${{ env.BUILD_DIR }}
