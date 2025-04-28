@@ -54,7 +54,8 @@ jobs:
           
       - name: Build Web Project
         run: |
-          zig build -Dtarget=wasm32-emscripten --sysroot D:/a/space-zig/space-zig/emsdk-cache/emsdk-main
+          zig build -Dtarget=wasm32-emscripten --sysroot ${{ env.EMSDK }}/upstream/emscripten
+
       - name: Generate Artifacts
         run: |
           # ls ${{ env.BUILD_DIR }}
