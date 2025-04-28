@@ -61,10 +61,9 @@ jobs:
 
       - name: Generate Artifacts
         run: |
-          # ls ${{ env.BUILD_DIR }}
+          ls ${{ env.BUILD_DIR }}
           cp README.md ${{ env.BUILD_DIR }}
           cp LICENSE ${{ env.BUILD_DIR }}
-          ls ${{ env.BUILD_DIR }}
           7z a ./${{ env.PROJECT_NAME }}.zip ./${{ env.BUILD_DIR }}
 
       - name: Upload Artifacts
