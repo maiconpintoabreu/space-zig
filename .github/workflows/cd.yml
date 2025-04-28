@@ -51,10 +51,6 @@ jobs:
         uses: mymindstorm/setup-emsdk@v14
         with:
           actions-cache-folder: 'emsdk-cache'
-      - name: Verify
-        run: |
-          emcc -v
-          echo &EMSDK_PATH
           
       - name: Build Web Project
         run: |
