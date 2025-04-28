@@ -1,0 +1,88 @@
+# Build and Publish on Itch.io
+# Only run when pushed to main
+
+name: CD
+on:
+  push:
+    branches: main
+    paths:
+      - 'src/**' # Deploy web every change in src folder
+      - '.github/workflows/cd.yml'
+    
+permissions:
+  contents: read
+
+jobs:
+  build-web:
+    permissions:
+      contents: write       # for actions/upload-release-asset to upload release asset
+    runs-on: ubuntu-latest
+    
+    env:
+      BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }} # Needs to be added through github
+      PROJECT_NAME: space-zig
+      BUILD_DIR: zig-out/htmlout
+
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v4.2.1
+
+      - name: Cache build/_deps
+        uses: actions/cache@v3
+        with:
+          path: ${{github.workspace}}/.zig-cache
+          key: cache-folder
+          restore-keys: cache-folder
+
+      - name: Cache build/_deps
+        uses: actions/cache@v3
+        with:
+          path: ${{github.workspace}}/esmdk
+          key: emsdk-folder
+          restore-keys: emsdk-folder
+
+      - name: Setup Environment
+        run: | 
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends python3 libglfw3 libglfw3-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxext-dev libxfixes-dev libwayland-dev libxkbcommon-dev cmake
+        shell: bash
+  
+      - name: Setup emsdk
+        run: |
+          git clone https://github.com/emscripten-core/emsdk.git
+          cd esmdk
+          git pull
+          ./emsdk install latest
+          ./emsdk activate latest
+          source ./emsdk_env.sh
+          
+      - name: Build Web Project
+        run: |
+          zig build -Dtarget=wasm32-emscripten --sysroot ./esmdk/upstream/emscripten
+      
+      - name: Generate Artifacts
+        run: |
+          # ls ${{ env.BUILD_DIR }}
+          cp README.md ${{ env.BUILD_DIR }}
+          cp LICENSE ${{ env.BUILD_DIR }}
+          ls ${{ env.BUILD_DIR }}
+          7z a ./${{ env.PROJECT_NAME }}.zip ./${{ env.BUILD_DIR }}
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PROJECT_NAME }}.zip
+          path: ./${{ env.PROJECT_NAME }}.zip
+
+      # - name: Download + Authorize Butler
+      #   run: |
+      #       curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
+      #       unzip butler.zip
+      #       chmod +x butler
+      #       ./butler -V
+
+      # - name: Login To Butler
+      #   run: ./butler login
+
+      # - name: Push Web to Itch
+      #   run: ./butler push ${{ env.PROJECT_RELEASE_PATH }} maiconspas/space-zig:web
