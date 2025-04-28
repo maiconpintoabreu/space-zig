@@ -51,6 +51,9 @@ jobs:
         uses: mymindstorm/setup-emsdk@v14
         with:
           actions-cache-folder: 'emsdk-cache'
+      
+      - name: Setup zig
+        uses: mlugg/setup-zig@v1
           
       - name: Build Web Project
         run: |
