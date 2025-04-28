@@ -48,13 +48,13 @@ jobs:
         shell: bash
   
       - name: Setup emsdk
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          actions-cache-folder: 'emsdk-cache'
+      - name: Verify
         run: |
-          git clone https://github.com/emscripten-core/emsdk.git
-          cd esmdk
-          git pull
-          ./emsdk install latest
-          ./emsdk activate latest
-          source ./emsdk_env.sh
+          emcc -v
+          whereis emcc
           
       - name: Build Web Project
         run: |
