@@ -64,13 +64,12 @@ jobs:
           ls ${{ env.BUILD_DIR }}
           cp README.md ${{ env.BUILD_DIR }}
           cp LICENSE ${{ env.BUILD_DIR }}
-          7z a ./${{ env.PROJECT_NAME }}.zip ./${{ env.BUILD_DIR }}
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.PROJECT_NAME }}.zip
-          path: ./${{ env.PROJECT_NAME }}.zip
+          path: ./${{ env.BUILD_DIR }}/*
 
       # - name: Download + Authorize Butler
       #   run: |
