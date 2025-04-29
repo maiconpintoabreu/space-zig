@@ -38,8 +38,8 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{github.workspace}}/.cache
-          key: zig-cache-folder
-          restore-keys: zig-cache-folder
+          key: .cache
+          restore-keys: .cache
 
       - name: Setup Environment
         run: | 
