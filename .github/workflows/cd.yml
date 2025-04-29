@@ -34,6 +34,13 @@ jobs:
           key: emsdk-cache
           restore-keys: emsdk-cache
 
+      - name: Cache build/zig-cache
+        uses: actions/cache@v3
+        with:
+          path: ${{github.workspace}}/.cache
+          key: zig-cache-folder
+          restore-keys: zig-cache-folder
+
       - name: Setup Environment
         run: | 
           sudo apt-get update -qq
