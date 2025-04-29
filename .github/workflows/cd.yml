@@ -21,7 +21,9 @@ jobs:
     env:
       BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }} # Needs to be added through github
       PROJECT_NAME: space-zig
-      BUILD_DIR: zig-out/htmlout
+      WEB_BUILD_DIR: zig-out/htmlout
+      LINUX_BUILD_DIR: zig-out/linux
+      WINDOWS_BUILD_DIR: zig-out/windows
 
     steps:
       - name: Checkout Project
@@ -45,7 +47,7 @@ jobs:
         run: | 
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends python3 libglfw3 libglfw3-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxext-dev libxfixes-dev libwayland-dev libxkbcommon-dev cmake
-          snap install zig --classic --beta
+          sudo snap install zig --classic --beta
         shell: bash
   
       - name: Setup emsdk
@@ -55,19 +57,42 @@ jobs:
           
       - name: Build Web Project
         run: |
-          zig build -Dtarget=wasm32-emscripten --sysroot ${{ env.EMSDK }}/upstream/emscripten
+          zig build -Dtarget=wasm32-emscripten -Doptimize=ReleaseSmall --sysroot ${{ env.EMSDK }}/upstream/emscripten
+          
+      - name: Build Linux Project
+        run: |
+          zig build -Doptimize=ReleaseSmall --prefix-exe-dir linux
+          
+      - name: Build Windows Project
+        run: |
+          zig build -Dtarget=x86_64-windows -Doptimize=ReleaseSmall --prefix-exe-dir windows
 
       - name: Generate Artifacts
         run: |
-          ls ${{ env.BUILD_DIR }}
-          cp README.md ${{ env.BUILD_DIR }}
-          cp LICENSE ${{ env.BUILD_DIR }}
+          cp README.md ${{ env.WEB_BUILD_DIR }}
+          cp LICENSE ${{ env.WEB_BUILD_DIR }}
+          cp README.md ${{ env.LINUX_BUILD_DIR }}
+          cp LICENSE ${{ env.LINUX_BUILD_DIR }}
+          cp README.md ${{ env.WINDOWS_BUILD_DIR }}
+          cp LICENSE ${{ env.WINDOWS_BUILD_DIR }}
 
-      - name: Upload Artifacts
+      - name: Upload Web Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.PROJECT_NAME }}.zip
-          path: ./${{ env.BUILD_DIR }}/*
+          name: ${{ env.PROJECT_NAME }}-web.zip
+          path: ./${{ env.WEB_BUILD_DIR }}/*
+
+      - name: Upload Linux Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PROJECT_NAME }}-linux.zip
+          path: ./${{ env.LINUX_BUILD_DIR }}/*
+
+      - name: Upload Windows Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PROJECT_NAME }}-windows.zip
+          path: ./${{ env.WINDOWS_BUILD_DIR }}/*
 
       - name: Download + Authorize Butler
         run: |
@@ -80,4 +105,10 @@ jobs:
         run: ./butler login
 
       - name: Push Web to Itch
-        run: ./butler push ${{ env.BUILD_DIR }} maiconspas/space-zig:web
+        run: ./butler push ${{ env.WEB_BUILD_DIR }} maiconspas/space-zig:web
+
+      - name: Push Linux to Itch
+        run: ./butler push ${{ env.LINUX_BUILD_DIR }} maiconspas/space-zig:linux
+
+      - name: Push Windows to Itch
+        run: ./butler push ${{ env.WINDOWS_BUILD_DIR }} maiconspas/space-zig:windows
