@@ -27,19 +27,12 @@ jobs:
       - name: Checkout Project
         uses: actions/checkout@v4.2.1
 
-      - name: Cache build/_deps
+      - name: Cache build/emsdk-cache
         uses: actions/cache@v3
         with:
-          path: ${{github.workspace}}/.zig-cache
-          key: cache-folder
-          restore-keys: cache-folder
-
-      - name: Cache build/_deps
-        uses: actions/cache@v3
-        with:
-          path: ${{github.workspace}}/esmdk
-          key: emsdk-folder
-          restore-keys: emsdk-folder
+          path: ${{github.workspace}}/emsdk-cache
+          key: emsdk-cache
+          restore-keys: emsdk-cache
 
       - name: Setup Environment
         run: | 
@@ -54,6 +47,8 @@ jobs:
       
       - name: Setup zig
         uses: mlugg/setup-zig@v1
+        with:
+          use-cache: true
           
       - name: Build Web Project
         run: |
@@ -71,15 +66,15 @@ jobs:
           name: ${{ env.PROJECT_NAME }}.zip
           path: ./${{ env.BUILD_DIR }}/*
 
-      # - name: Download + Authorize Butler
-      #   run: |
-      #       curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
-      #       unzip butler.zip
-      #       chmod +x butler
-      #       ./butler -V
+      - name: Download + Authorize Butler
+        run: |
+            curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
+            unzip butler.zip
+            chmod +x butler
+            ./butler -V
 
-      # - name: Login To Butler
-      #   run: ./butler login
+      - name: Login To Butler
+        run: ./butler login
 
-      # - name: Push Web to Itch
-      #   run: ./butler push ${{ env.PROJECT_RELEASE_PATH }} maiconspas/space-zig:web
+      - name: Push Web to Itch
+        run: ./butler push ${{ env.BUILD_DIR }} maiconspas/space-zig:web
