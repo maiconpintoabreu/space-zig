@@ -1,6 +1,8 @@
 const std = @import("std");
-const expect = std.testing.expect;
 
-test "main print" {
-    try expect(true);
+pub const game_test = @import("game_test.zig");
+// etc
+
+test {
+    std.testing.refAllDecls(@This());
 }

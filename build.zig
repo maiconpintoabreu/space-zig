@@ -5,7 +5,9 @@ const emccOutputDir = "zig-out" ++ std.fs.path.sep_str ++ "htmlout" ++ std.fs.pa
 const emccOutputFile = "index.html";
 
 pub fn build(b: *std.Build) !void {
-    const target = b.standardTargetOptions(.{});
+    const target = b.resolveTargetQuery(std.Target.Query.parse(.{
+        .arch_os_abi = "x86_64-windows-gnu",
+    }) catch @panic("err"));
     const optimize = b.standardOptimizeOption(.{});
 
     const raylib_dep = b.dependency("raylib_zig", .{
@@ -41,6 +43,7 @@ pub fn build(b: *std.Build) !void {
     const exe = b.addExecutable(.{ .name = "space_zig", .root_source_file = b.path("src/main.zig"), .optimize = optimize, .target = target });
 
     exe.linkLibrary(raylib_artifact);
+    exe.want_lto = true; // LTO works!
     exe.root_module.addImport("raylib", raylib);
 
     const run_cmd = b.addRunArtifact(exe);
@@ -48,4 +51,16 @@ pub fn build(b: *std.Build) !void {
     run_step.dependOn(&run_cmd.step);
 
     b.installArtifact(exe);
+
+    const unit_tests = b.addTest(.{
+        .root_source_file = b.path("src/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    unit_tests.linkLibrary(raylib_artifact);
+    unit_tests.root_module.addImport("raylib", raylib);
+
+    const run_unit_tests = b.addRunArtifact(unit_tests);
+    const test_step = b.step("test", "Run unit tests");
+    test_step.dependOn(&run_unit_tests.step);
 }

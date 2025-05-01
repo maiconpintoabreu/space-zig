@@ -4,7 +4,7 @@
         {
             "label": "build",
             "type": "shell",
-            "command": "zig build",
+            "command": "zig build --summary new",
             "problemMatcher": [],
             "group": {
                 "kind": "build",

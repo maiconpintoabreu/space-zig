@@ -49,6 +49,9 @@ jobs:
           sudo apt-get install -y --no-install-recommends python3 libglfw3 libglfw3-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxext-dev libxfixes-dev libwayland-dev libxkbcommon-dev cmake
           sudo snap install zig --classic --beta
         shell: bash
+
+      - name: Unit Test
+        run: zig build test --summary new
   
       - name: Setup emsdk
         uses: mymindstorm/setup-emsdk@v14

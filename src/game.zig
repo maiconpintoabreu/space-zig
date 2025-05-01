@@ -5,10 +5,22 @@ const Color = rl.Color;
 
 const PLAYER_SPEED: f32 = 100.0;
 const PLAYER_ROTATION_SPEED: f32 = 100.0;
+const MAX_PLAYER_BULLETS: u8 = 20;
+const PLAYER_SHOT_CD: u8 = 20;
+const PLAYER_SHOT_SPEED: f32 = 300;
+const PLAYER_SHOT_LIFETIME: u16 = 100;
 const SHIP_HALF_HEIGHT: f32 = 5.0 / 0.363970;
 const PHYSICS_TIME: f32 = 0.02;
 const FONT_SIZE: i8 = 20;
 const DEG2RAD = 3.14159265358979323846 / 100.0;
+
+const Bullet = struct {
+    position: rl.Vector2 = .{ .x = 0, .y = 0 },
+    rotation: f32 = 0,
+    lifeTime: u16 = 0,
+    acceleration: f32 = 10,
+    speed: rl.Vector2 = .{ .x = 0, .y = 0 },
+};
 
 const Player = struct {
     position: rl.Vector2 = .{ .x = 0, .y = 0 },
@@ -22,9 +34,32 @@ const Player = struct {
     isTurnRight: bool = false,
     isAccelerating: bool = false,
     isBreaking: bool = false,
+    amountActiveBullets: u8 = 0,
+    shotCooldown: u8 = 0,
+    bulletsPoll: [MAX_PLAYER_BULLETS]Bullet = std.mem.zeroes([MAX_PLAYER_BULLETS]Bullet),
+    fn shot(self: *Player) bool {
+        if (self.shotCooldown > 0) {
+            return false;
+        }
+        self.shotCooldown = PLAYER_SHOT_CD;
+        if (self.amountActiveBullets < MAX_PLAYER_BULLETS) {
+            self.bulletsPoll[self.amountActiveBullets].position = self.topPoint;
+            self.bulletsPoll[self.amountActiveBullets].rotation = self.rotation;
+            self.bulletsPoll[self.amountActiveBullets].lifeTime = PLAYER_SHOT_LIFETIME;
+            self.bulletsPoll[self.amountActiveBullets].acceleration = PLAYER_SHOT_SPEED;
+            self.amountActiveBullets += 1;
+            std.debug.print("Peww\n", .{});
+            return true;
+        }
+        return false;
+    }
+    fn killBullet(self: *Player, i: usize) void {
+        self.amountActiveBullets -= 1;
+        self.bulletsPoll[i] = self.bulletsPoll[self.amountActiveBullets];
+    }
 };
 
-const GameStateType = enum(u2) {
+pub const GameStateType = enum(u2) {
     StateInGame,
     StateStartMenu,
     StateGameOver,
@@ -43,21 +78,26 @@ const Game = struct {
     highestScore: f32 = 0,
     state: GameStateType = GameStateType.StateStartMenu,
     player: Player = .{},
+    isPlaying: bool = false,
 };
+pub threadlocal var isTesting: bool = false;
 
-var game: Game = .{};
+pub threadlocal var game: Game = .{};
 const menu_size_width: f32 = 200.0;
 const item_menu_size_height: f32 = 50.0;
 const acceleration: f32 = PLAYER_SPEED * PHYSICS_TIME;
-var exitMenuRec: rl.Rectangle = .{ .x = 0, .y = 0, .width = 0, .height = 0 };
-var startMenuRec: rl.Rectangle = .{ .x = 0, .y = 0, .width = 0, .height = 0 };
-var restartMenuRec: rl.Rectangle = .{ .x = 0, .y = 0, .width = 0, .height = 0 };
+threadlocal var exitMenuRec: rl.Rectangle = .{ .x = 0, .y = 0, .width = 0, .height = 0 };
+threadlocal var startMenuRec: rl.Rectangle = .{ .x = 0, .y = 0, .width = 0, .height = 0 };
+threadlocal var restartMenuRec: rl.Rectangle = .{ .x = 0, .y = 0, .width = 0, .height = 0 };
 
 pub fn startGame() void {
     game.width = 640;
     game.height = 360;
+    game.isPlaying = true;
 
-    rl.initWindow(game.width, game.height, "Space Zig");
+    if (!isTesting) {
+        rl.initWindow(game.width, game.height, "Space Zig");
+    }
 
     PlaceUIButtons();
     ResetPlayer();
@@ -111,7 +151,7 @@ fn ResetPlayer() void {
     game.isPlayerRotationChange = false;
 }
 
-pub fn updateFrame() void {
+pub fn updateFrame() bool {
     if (rl.isWindowResized()) {
         PlaceUIButtons();
     }
@@ -142,63 +182,95 @@ pub fn updateFrame() void {
         } else {
             game.player.isBreaking = false;
         }
+        if (rl.isKeyDown(rl.KeyboardKey.space)) {
+            _ = game.player.shot();
+        }
 
         // Physics
         game.frameTimeAccumulator += rl.getFrameTime();
         if (game.frameTimeAccumulator > PHYSICS_TIME) {
-            game.frameTimeAccumulator = 0.0;
-
-            if (game.player.isTurnLeft) {
-                game.player.rotation -= PLAYER_ROTATION_SPEED * PHYSICS_TIME;
-            } else if (game.player.isTurnRight) {
-                game.player.rotation += PLAYER_ROTATION_SPEED * PHYSICS_TIME;
-            }
-
-            // if (game.isPlayerRotationChange) {
-            //     if (game.player.rotation > 180.0) {
-            //         game.player.rotation -= 360.0;
-            //     }
-            //     if (game.player.rotation < -180.0) {
-            //         game.player.rotation += 360.0;
-            //     }
-            // }
-            if (game.player.isAccelerating) {
-                if (game.player.acceleration < PLAYER_SPEED) {
-                    game.player.acceleration += acceleration;
-                }
-            } else if (game.player.acceleration > 0.0) {
-                game.player.acceleration -= acceleration / 2.0;
-            } else if (game.player.acceleration < 0.0) {
-                game.player.acceleration = 0.0;
-            }
-            if (game.player.isBreaking) {
-                if (game.player.acceleration > 0.0) {
-                    game.player.acceleration -= acceleration;
-                } else if (game.player.acceleration < 0.0) {
-                    game.player.acceleration = 0.0;
-                }
-            }
-
-            const direction: rl.Vector2 = .{ .x = math.sin(game.player.rotation * DEG2RAD), .y = -math.cos(game.player.rotation * DEG2RAD) };
-            const norm_vector: rl.Vector2 = rl.Vector2.normalize(direction);
-            game.player.speed = rl.Vector2.scale(norm_vector, game.player.acceleration * PHYSICS_TIME);
-            game.player.position = rl.Vector2.add(game.player.position, game.player.speed);
-            // Update Triangle Rotation
-            if (rl.Vector2.length(game.player.speed) > 0.0) {
-                if (game.player.position.x > game.fwidth + SHIP_HALF_HEIGHT) {
-                    game.player.position.x = -SHIP_HALF_HEIGHT;
-                } else if (game.player.position.x < -SHIP_HALF_HEIGHT) {
-                    game.player.position.x = game.fwidth + SHIP_HALF_HEIGHT;
-                }
-
-                if (game.player.position.y > game.fheight + SHIP_HALF_HEIGHT) {
-                    game.player.position.y = -SHIP_HALF_HEIGHT;
-                } else if (game.player.position.y < -SHIP_HALF_HEIGHT) {
-                    game.player.position.y = game.fheight + SHIP_HALF_HEIGHT;
-                }
-            }
+            updatePhysics();
         }
     }
+    if (!isTesting) {
+        drawFrame();
+    }
+    if (rl.isKeyDown(rl.KeyboardKey.escape) or rl.windowShouldClose()) {
+        game.isPlaying = false;
+    }
+    return game.isPlaying;
+}
+pub fn updatePhysics() void {
+    game.frameTimeAccumulator = 0.0;
+
+    if (game.player.isTurnLeft) {
+        game.player.rotation -= PLAYER_ROTATION_SPEED * PHYSICS_TIME;
+    } else if (game.player.isTurnRight) {
+        game.player.rotation += PLAYER_ROTATION_SPEED * PHYSICS_TIME;
+    }
+
+    // if (game.isPlayerRotationChange) {
+    //     if (game.player.rotation > 180.0) {
+    //         game.player.rotation -= 360.0;
+    //     }
+    //     if (game.player.rotation < -180.0) {
+    //         game.player.rotation += 360.0;
+    //     }
+    // }
+    if (game.player.isAccelerating) {
+        if (game.player.acceleration < PLAYER_SPEED) {
+            game.player.acceleration += acceleration;
+        }
+    } else if (game.player.acceleration > 0.0) {
+        game.player.acceleration -= acceleration / 2.0;
+    } else if (game.player.acceleration < 0.0) {
+        game.player.acceleration = 0.0;
+    }
+    if (game.player.isBreaking) {
+        if (game.player.acceleration > 0.0) {
+            game.player.acceleration -= acceleration;
+        } else if (game.player.acceleration < 0.0) {
+            game.player.acceleration = 0.0;
+        }
+    }
+
+    // Calc cooldowns
+    if (game.player.shotCooldown > 0) {
+        game.player.shotCooldown -= 1;
+    }
+    for (0.., game.player.bulletsPoll[0..game.player.amountActiveBullets]) |i, *bullet| {
+        if (bullet.lifeTime > 0) {
+            bullet.lifeTime -= 1;
+
+            const direction: rl.Vector2 = .{ .x = math.sin(bullet.rotation * DEG2RAD), .y = -math.cos(bullet.rotation * DEG2RAD) };
+            const norm_vector: rl.Vector2 = rl.Vector2.normalize(direction);
+            bullet.speed = rl.Vector2.scale(norm_vector, bullet.acceleration * PHYSICS_TIME);
+            bullet.position = rl.Vector2.add(bullet.position, bullet.speed);
+        } else {
+            game.player.killBullet(i);
+        }
+    }
+
+    const direction: rl.Vector2 = .{ .x = math.sin(game.player.rotation * DEG2RAD), .y = -math.cos(game.player.rotation * DEG2RAD) };
+    const norm_vector: rl.Vector2 = rl.Vector2.normalize(direction);
+    game.player.speed = rl.Vector2.scale(norm_vector, game.player.acceleration * PHYSICS_TIME);
+    game.player.position = rl.Vector2.add(game.player.position, game.player.speed);
+    // Update Triangle Rotation
+    if (rl.Vector2.length(game.player.speed) > 0.0) {
+        if (game.player.position.x > game.fwidth + SHIP_HALF_HEIGHT) {
+            game.player.position.x = -SHIP_HALF_HEIGHT;
+        } else if (game.player.position.x < -SHIP_HALF_HEIGHT) {
+            game.player.position.x = game.fwidth + SHIP_HALF_HEIGHT;
+        }
+
+        if (game.player.position.y > game.fheight + SHIP_HALF_HEIGHT) {
+            game.player.position.y = -SHIP_HALF_HEIGHT;
+        } else if (game.player.position.y < -SHIP_HALF_HEIGHT) {
+            game.player.position.y = game.fheight + SHIP_HALF_HEIGHT;
+        }
+    }
+}
+pub fn drawFrame() void {
 
     // Draw
     rl.beginDrawing();
@@ -230,6 +302,10 @@ pub fn updateFrame() void {
             if (game.player.isAccelerating) {
                 rl.drawCircleV(v1tmp, 4, Color.yellow);
             }
+
+            for (game.player.bulletsPoll[0..game.player.amountActiveBullets]) |bullet| {
+                rl.drawCircleV(bullet.position, 4, Color.yellow);
+            }
             rl.drawTriangle(game.player.topPoint, game.player.rightPoint, game.player.leftPoint, Color.white);
         },
         GameStateType.StateStartMenu => {
@@ -239,7 +315,7 @@ pub fn updateFrame() void {
             }
             if (MenuButtom(exitMenuRec, "Exit Game")) {
                 // Exit game
-                rl.closeWindow();
+                game.isPlaying = false;
             }
         },
         GameStateType.StateGameOver => {
@@ -250,9 +326,8 @@ pub fn updateFrame() void {
             }
             if (MenuButtom(exitMenuRec, "Exit Game")) {
                 // Exit game
-                rl.closeWindow();
+                game.isPlaying = false;
             }
         },
     }
-    //----------------------------------------------------------------------------------
 }
