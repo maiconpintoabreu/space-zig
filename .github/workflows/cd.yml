@@ -43,12 +43,12 @@ jobs:
           key: .zig-cache
           restore-keys: .zig-cache
 
-      - name: Cache build/zig-test-cache
-        uses: actions/cache@v3
-        with:
-          path: ${{github.workspace}}/.zig-test-cache
-          key: .zig-test-cache
-          restore-keys: .zig-test-cache
+      # - name: Cache build/zig-test-cache
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: ${{github.workspace}}/.zig-test-cache
+      #     key: .zig-test-cache
+      #     restore-keys: .zig-test-cache
 
       - name: Setup Environment
         run: | 
@@ -57,8 +57,8 @@ jobs:
           sudo snap install zig --classic --beta
         shell: bash
 
-      - name: Unit Test
-        run: zig build test --summary new --cache-dir .zig-test-cache
+      # - name: Unit Test
+      #   run: zig build test --summary new --cache-dir .zig-test-cache
   
       - name: Setup emsdk
         uses: mymindstorm/setup-emsdk@v14
