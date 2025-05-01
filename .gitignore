@@ -1,2 +1,3 @@
 .zig-cache/
+.zig-test-cache/
 zig-out/
