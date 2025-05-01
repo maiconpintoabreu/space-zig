@@ -5,9 +5,7 @@ const emccOutputDir = "zig-out" ++ std.fs.path.sep_str ++ "htmlout" ++ std.fs.pa
 const emccOutputFile = "index.html";
 
 pub fn build(b: *std.Build) !void {
-    const target = b.resolveTargetQuery(std.Target.Query.parse(.{
-        .arch_os_abi = "x86_64-windows-gnu",
-    }) catch @panic("err"));
+    const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
     const raylib_dep = b.dependency("raylib_zig", .{

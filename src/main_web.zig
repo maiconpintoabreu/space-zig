@@ -25,5 +25,5 @@ fn safeMain() !c_int {
 }
 
 export fn updateFrame() callconv(.C) void {
-    gameLogic.updateFrame();
+    _ = gameLogic.updateFrame();
 }

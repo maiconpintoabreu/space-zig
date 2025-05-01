@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 jobs:
-  build-web:
+  build-itchio:
     permissions:
       contents: write       # for actions/upload-release-asset to upload release asset
     runs-on: ubuntu-latest
@@ -43,6 +43,13 @@ jobs:
           key: .zig-cache
           restore-keys: .zig-cache
 
+      - name: Cache build/zig-test-cache
+        uses: actions/cache@v3
+        with:
+          path: ${{github.workspace}}/.zig-test-cache
+          key: .zig-test-cache
+          restore-keys: .zig-test-cache
+
       - name: Setup Environment
         run: | 
           sudo apt-get update -qq
@@ -51,7 +58,7 @@ jobs:
         shell: bash
 
       - name: Unit Test
-        run: zig build test --summary new
+        run: zig build test --summary new --cache-dir .zig-test-cache
   
       - name: Setup emsdk
         uses: mymindstorm/setup-emsdk@v14
