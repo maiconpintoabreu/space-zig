@@ -1,13 +1,10 @@
-build:
-	make build-web
-	make build-linux
-	make build-windows
-
 run:
 	zig build run
+test:
+	zig build -DbuildOnly=true test --summary new
 build-linux:
-	zig build -Doptimize=ReleaseSmall --prefix-exe-dir linux
+	zig build -DbuildOnly=true -Doptimize=ReleaseSmall --prefix-exe-dir linux
 build-windows:
-	zig build -Dtarget=x86_64-windows -Doptimize=ReleaseSmall --prefix-exe-dir windows
+	zig build -DbuildOnly=true -Dtarget=x86_64-windows -Doptimize=ReleaseSmall --prefix-exe-dir windows
 build-web:
-	zig build -Dtarget=wasm32-emscripten -Doptimize=ReleaseSmall --prefix-exe-dir web --sysroot ../emsdk/upstream/emscripten
+	zig build -DbuildOnly=true -Dtarget=wasm32-emscripten -Doptimize=ReleaseSmall --sysroot ${EMSDK}/upstream/emscripten

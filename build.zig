@@ -5,6 +5,7 @@ const emccOutputDir = "zig-out" ++ std.fs.path.sep_str ++ "htmlout" ++ std.fs.pa
 const emccOutputFile = "index.html";
 
 pub fn build(b: *std.Build) !void {
+    const buildOnly = b.option(bool, "buildOnly", "flag build that it is build only") orelse false;
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
@@ -31,10 +32,12 @@ pub fn build(b: *std.Build) !void {
         link_step.addArg("src/minshell.html");
 
         b.getInstallStep().dependOn(&link_step.step);
-        const run_step = try rlz.emcc.emscriptenRunStep(b);
-        run_step.step.dependOn(&link_step.step);
-        const run_option = b.step("run", "Run space_zig");
-        run_option.dependOn(&run_step.step);
+        if (!buildOnly) {
+            const run_step = try rlz.emcc.emscriptenRunStep(b);
+            run_step.step.dependOn(&link_step.step);
+            const run_option = b.step("run", "Run space_zig");
+            run_option.dependOn(&run_step.step);
+        }
         return;
     }
 
@@ -44,9 +47,11 @@ pub fn build(b: *std.Build) !void {
     exe.want_lto = true; // LTO works!
     exe.root_module.addImport("raylib", raylib);
 
-    const run_cmd = b.addRunArtifact(exe);
-    const run_step = b.step("run", "Run space_zig");
-    run_step.dependOn(&run_cmd.step);
+    if (!buildOnly) {
+        const run_cmd = b.addRunArtifact(exe);
+        const run_step = b.step("run", "Run space_zig");
+        run_step.dependOn(&run_cmd.step);
+    }
 
     b.installArtifact(exe);
 

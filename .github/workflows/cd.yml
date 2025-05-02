@@ -4,7 +4,9 @@
 name: CD
 on:
   push:
-    branches: main
+    branches: 
+      - main
+      - testing-cd
     paths:
       - 'src/**' # Deploy web every change in src folder
       - '.github/workflows/cd.yml'
@@ -43,13 +45,6 @@ jobs:
           key: .zig-cache
           restore-keys: .zig-cache
 
-      # - name: Cache build/zig-test-cache
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: ${{github.workspace}}/.zig-test-cache
-      #     key: .zig-test-cache
-      #     restore-keys: .zig-test-cache
-
       - name: Setup Environment
         run: | 
           sudo apt-get update -qq
@@ -57,8 +52,8 @@ jobs:
           sudo snap install zig --classic --beta
         shell: bash
 
-      # - name: Unit Test
-      #   run: zig build test --summary new --cache-dir .zig-test-cache
+      - name: Unit Test
+        run: zig build -DbuildOnly=true test --summary new
   
       - name: Setup emsdk
         uses: mymindstorm/setup-emsdk@v14
@@ -67,15 +62,15 @@ jobs:
           
       - name: Build Web Project
         run: |
-          zig build -Dtarget=wasm32-emscripten -Doptimize=ReleaseSmall --sysroot ${{ env.EMSDK }}/upstream/emscripten
+          zig build -DbuildOnly=true -Dtarget=wasm32-emscripten -Doptimize=ReleaseSmall --sysroot ${{ env.EMSDK }}/upstream/emscripten
           
       - name: Build Linux Project
         run: |
-          zig build -Doptimize=ReleaseSmall --prefix-exe-dir linux
+          zig build -DbuildOnly=true -Doptimize=ReleaseSmall --prefix-exe-dir linux
           
       - name: Build Windows Project
         run: |
-          zig build -Dtarget=x86_64-windows -Doptimize=ReleaseSmall --prefix-exe-dir windows
+          zig build -DbuildOnly=true -Dtarget=x86_64-windows -Doptimize=ReleaseSmall --prefix-exe-dir windows
 
       - name: Generate Artifacts
         run: |
