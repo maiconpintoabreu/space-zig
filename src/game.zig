@@ -37,6 +37,31 @@ const Player = struct {
     amountActiveBullets: u8 = 0,
     shotCooldown: u8 = 0,
     bulletsPoll: [MAX_PLAYER_BULLETS]Bullet = std.mem.zeroes([MAX_PLAYER_BULLETS]Bullet),
+    fn updatePhysics(self: *Player) void {
+        const direction: rl.Vector2 = .{ .x = math.sin(self.rotation * DEG2RAD), .y = -math.cos(self.rotation * DEG2RAD) };
+        const norm_vector: rl.Vector2 = rl.Vector2.normalize(direction);
+        const norm_speed = rl.Vector2.normalize(self.speed);
+        if (self.isAccelerating) {
+            self.speed = rl.Vector2.scale(rl.Vector2.add(norm_vector, norm_speed), self.acceleration * PHYSICS_TIME);
+        } else {
+            self.speed = rl.Vector2.scale(norm_speed, self.acceleration * PHYSICS_TIME);
+        }
+        self.position = rl.Vector2.add(self.position, self.speed);
+        // Update Triangle Rotation
+        if (rl.Vector2.length(self.speed) > 0.0) {
+            if (self.position.x > game.fwidth + SHIP_HALF_HEIGHT) {
+                self.position.x = -SHIP_HALF_HEIGHT;
+            } else if (self.position.x < -SHIP_HALF_HEIGHT) {
+                self.position.x = game.fwidth + SHIP_HALF_HEIGHT;
+            }
+
+            if (self.position.y > game.fheight + SHIP_HALF_HEIGHT) {
+                self.position.y = -SHIP_HALF_HEIGHT;
+            } else if (self.position.y < -SHIP_HALF_HEIGHT) {
+                self.position.y = game.fheight + SHIP_HALF_HEIGHT;
+            }
+        }
+    }
     fn shot(self: *Player) bool {
         if (self.shotCooldown > 0) {
             return false;
@@ -250,25 +275,7 @@ pub fn updatePhysics() void {
             game.player.killBullet(i);
         }
     }
-
-    const direction: rl.Vector2 = .{ .x = math.sin(game.player.rotation * DEG2RAD), .y = -math.cos(game.player.rotation * DEG2RAD) };
-    const norm_vector: rl.Vector2 = rl.Vector2.normalize(direction);
-    game.player.speed = rl.Vector2.scale(norm_vector, game.player.acceleration * PHYSICS_TIME);
-    game.player.position = rl.Vector2.add(game.player.position, game.player.speed);
-    // Update Triangle Rotation
-    if (rl.Vector2.length(game.player.speed) > 0.0) {
-        if (game.player.position.x > game.fwidth + SHIP_HALF_HEIGHT) {
-            game.player.position.x = -SHIP_HALF_HEIGHT;
-        } else if (game.player.position.x < -SHIP_HALF_HEIGHT) {
-            game.player.position.x = game.fwidth + SHIP_HALF_HEIGHT;
-        }
-
-        if (game.player.position.y > game.fheight + SHIP_HALF_HEIGHT) {
-            game.player.position.y = -SHIP_HALF_HEIGHT;
-        } else if (game.player.position.y < -SHIP_HALF_HEIGHT) {
-            game.player.position.y = game.fheight + SHIP_HALF_HEIGHT;
-        }
-    }
+    game.player.updatePhysics();
 }
 pub fn drawFrame() void {
 
