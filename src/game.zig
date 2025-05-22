@@ -6,6 +6,7 @@ const Color = rl.Color;
 const PLAYER_SPEED: f32 = 100.0;
 const PLAYER_ROTATION_SPEED: f32 = 100.0;
 const MAX_PLAYER_BULLETS: u8 = 20;
+const MAX_ASTEROIDS: u8 = 20;
 const PLAYER_SHOT_CD: u8 = 20;
 const PLAYER_SHOT_SPEED: f32 = 300;
 const PLAYER_SHOT_LIFETIME: u16 = 100;
@@ -84,6 +85,40 @@ const Player = struct {
     }
 };
 
+const Asteroid = struct {
+    position: rl.Vector2 = .{ .x = 0, .y = 0 },
+    rotation: f32 = 0,
+    speed: rl.Vector2 = .{ .x = 0, .y = 0 },
+    acceleration: f32 = 10,
+    type_: AsteroidType = AsteroidType.AsteroidBig,
+
+    fn updatePhysics(self: *Asteroid) void {
+        const direction: rl.Vector2 = .{ .x = math.sin(self.rotation * DEG2RAD), .y = -math.cos(self.rotation * DEG2RAD) };
+        const norm_vector: rl.Vector2 = rl.Vector2.normalize(direction);
+        const norm_speed = rl.Vector2.normalize(self.speed);
+        self.speed = rl.Vector2.scale(rl.Vector2.add(norm_vector, norm_speed), self.acceleration * PHYSICS_TIME);
+        self.position = rl.Vector2.add(self.position, self.speed);
+    }
+    fn draw(self: *Asteroid) void {
+        rl.drawCircleV(self.position, 10, Color.red);
+    }
+    fn die(self: *Asteroid) void {
+        self.position.x = -100;
+        self.position.y = -100;
+    }
+    fn spawn(self: *Asteroid, position: rl.Vector2, rotation: f32, speed: rl.Vector2) void {
+        self.position = position;
+        self.rotation = rotation;
+        self.speed = speed;
+        self.acceleration = 10.0;
+    }
+};
+const AsteroidType = enum(u8) {
+    AsteroidBig = 10,
+    AsteroidMedium = 5,
+    AsteroidSmall = 2,
+    AsteroidNone = 0,
+};
 pub const GameStateType = enum(u2) {
     StateInGame,
     StateStartMenu,
@@ -103,6 +138,9 @@ const Game = struct {
     highestScore: f32 = 0,
     state: GameStateType = GameStateType.StateStartMenu,
     player: Player = .{},
+    asteroids: [MAX_ASTEROIDS]Asteroid = std.mem.zeroes([MAX_ASTEROIDS]Asteroid),
+    amountActiveAsteroids: u8 = 0,
+    levelAsteroidAmount: u8 = 3,
     isPlaying: bool = false,
 };
 pub threadlocal var isTesting: bool = false;
@@ -162,6 +200,7 @@ fn PlaceUIButtons() void {
 }
 
 fn ResetPlayer() void {
+    game.player.amountActiveBullets = 0;
     game.player.position.x = game.halfWidth;
     game.player.position.y = game.halfHeight - (SHIP_HALF_HEIGHT / 2.0);
     game.player.speed.x = 0.0;
@@ -174,6 +213,10 @@ fn ResetPlayer() void {
     game.frameTimeAccumulator = 0.0;
 
     game.isPlayerRotationChange = false;
+}
+fn ResetGame() void {
+    ResetPlayer();
+    game.amountActiveAsteroids = 0;
 }
 
 pub fn updateFrame() bool {
@@ -273,6 +316,20 @@ pub fn updatePhysics() void {
             bullet.position = rl.Vector2.add(bullet.position, bullet.speed);
         } else {
             game.player.killBullet(i);
+        }
+    }
+    for (game.asteroids[0..game.amountActiveAsteroids]) |*asteroid| {
+        asteroid.updatePhysics();
+        if (asteroid.position.x > game.fwidth + 10) {
+            asteroid.position.x = -10;
+        } else if (asteroid.position.x < -10) {
+            asteroid.position.x = game.fwidth + 10;
+        }
+
+        if (asteroid.position.y > game.fheight + 10) {
+            asteroid.position.y = -10;
+        } else if (asteroid.position.y < -10) {
+            asteroid.position.y = game.fheight + 10;
         }
     }
     game.player.updatePhysics();
