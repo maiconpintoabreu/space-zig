@@ -39,7 +39,7 @@ jobs:
           zig build -Dtarget=aarch64-linux-android
 
       - name: Archive build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: android-build
-          path: zig-out/
+          name: android-build.zip
+          path: ./zig-out/
