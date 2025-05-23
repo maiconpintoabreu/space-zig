@@ -20,10 +20,12 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Zig
-        uses: goto-bus-stop/setup-zig@v2
-        with:
-          zig-version: 'latest'
+      - name: Setup Environment
+        run: | 
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends python3 libglfw3 libglfw3-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxext-dev libxfixes-dev libwayland-dev libxkbcommon-dev cmake
+          sudo snap install zig --classic --beta
+        shell: bash
 
       - name: Install Android NDK
         uses: nttld/setup-ndk@v1
