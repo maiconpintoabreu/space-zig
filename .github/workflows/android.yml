@@ -1,0 +1,45 @@
+name: Android CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          zig-version: 'latest'
+
+      - name: Install Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25c
+
+      - name: Set up CMake
+        uses: jwlawson/actions-setup-cmake@v1
+
+      - name: Build for Android (zig + raylib)
+        run: |
+          export ANDROID_NDK_HOME=$ANDROID_NDK_ROOT
+          zig build -Dtarget=aarch64-linux-android
+
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: android-build
+          path: zig-out/
