@@ -32,9 +32,6 @@ jobs:
         with:
           ndk-version: r25c
 
-      - name: Set up CMake
-        uses: jwlawson/actions-setup-cmake@v1
-
       - name: Build for Android (zig + raylib)
         run: |
           export ANDROID_NDK_HOME=$ANDROID_NDK_ROOT
